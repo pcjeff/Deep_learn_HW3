@@ -31,14 +31,22 @@ def get_param(word_vec_len, hidden_len, output_len):
     W_xh = theano.shared(init_w(hidden_len, word_vec_len))
     W_hy = theano.shared(init_w(output_len, hidden_len))
     W_hh = theano.shared(init_w(hidden_len, hidden_len))
-    b_y = theano.shared(init_w(hidden_len, 1))
-    b_h = theano.shared(init_w(output_len, 1))
+    b_h = theano.shared(init_w(hidden_len, 1))
+    b_y = theano.shared(init_w(output_len, 1))
     return [W_xh, W_hy, W_hh, b_y, b_h]
 
 def one_rnn_step( x, h_tm, W_xh, W_hy, W_hh, b_y, b_h):
     #compute the output layer and the hidden layer of the RNN
+    print 'W_xh: ' + str(W_xh.eval().shape)
+    #print 'x: ' + str(x.eval().shape)
+    print 'W_hh: ' + str(W_hh.eval().shape)
+    #print 'h_tm: ' + str(h_tm.eval().shape)
+    print 'b_h: ' + str(b_h.eval().shape)
+    print 'W_hy: ' + str(W_hy.eval().shape)
+    print 'b_y: ' + str(b_y.eval().shape)
     hh = theano.dot(W_xh, x) + theano.dot(W_hh, h_tm) + b_h
-    yy = sigma(theano.dot(hh, W_hy) + b_y)
+    print 'hh' + str(hh.eval().shape)
+    yy = sigma(theano.dot(W_hy, hh) + b_y)
     return [soft_max(yy), hh]
 
 def get_word2vec_model(path='../word2vec-read-only/vectors.bin'):
