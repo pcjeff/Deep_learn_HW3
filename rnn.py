@@ -10,11 +10,16 @@ word_vec_len = 200 #dim of word vec
 hidden_len = 4096 #dim of hidden layer
 output_len =  64402 #num of words, not sure yet
 lr = 0.1
+epoch = 10
 sigma = lambda x: 1/ (1+T.exp(-x))
 rng = np.random.RandomState(1234)
 v = T.matrix(dtype=theano.config.floatX)
 target = T.matrix(dtype=theano.config.floatX)
 
+
+def soft_max(x):
+    deno = [math.exp(temp) for temp in x].sum()
+    return x/deno
 
 def init_w(size_x, size_y):
     values = np.array(rng.uniform(low = -1., high=1., size=(size_x, size_y)))
@@ -30,15 +35,18 @@ def get_param(word_vec_len, hidden_len, output_len):
     return [W_xh, W_hy, W_hh, b_y, b_h]
 
 def one_rnn_step( x, h_tm, W_xh, W_hy, W_hh, b_y, b_h):
+    #compute the output layer and the hidden layer of the RNN
     hh = T.dot(x, W_xh) + T.dot(h_tm, W_hh) + b_h
     yy = sigma(T.dot(hh, W_hy) + b_y)
-    return [yy, hh]
+    return [soft_max(yy), hh]
 
 def get_word2vec_model(path='../word2vec-read-only/vectors.bin'):
+    #read the vectors.bin into the word2vec model
     word2vec = gensim.models.Word2Vec.load_word2vec_format(path, binary=True)
     return word2vec
 
 def get_train_func(cost, v, target, params):
+    #get the learning function ==> learn_rnn_fn
     gparams = []
     for param in params:
         gparam = T.grad(cost, param)
@@ -53,11 +61,20 @@ def get_train_func(cost, v, target, params):
             )
     return learn_rnn_fn
 
+def predict(line): # the function for jacky82226
+    #return the probability of the sentence
+    #(multiply all the prob of the words in the sentence)
+    #param:
+    #       type: list
+    #       line: list of the words of the sentence  
 def main():
-    
+   
     [params, h0] = get_param(word_vec_len, hidden_len, output_len, learning_rate)
+    # init the params 
     word2vec = get_word2vec_model()
-
+    # the word2vec model
+    index_word_mapping = dict(zip(word2vec.index2word, range(0, output_len)))
+    # mapping of words and index EX: 1 for 'the', 2 for 'is'
     [y_vals, h_vals], _ = thenao.scan(fn = one_rnn_step,
         sequences = v,
         outputs_info = [h0, None], #no output layer 
@@ -65,15 +82,23 @@ def main():
         truncate_gradient = 4)
     cost = -T.mean(target * T.log(y_vals) + (1. - target) * T.log(1. - y_vals))
     learn_rnn_fn = get_train_func(cost, v, target, params)
-
+    #above is for BPTT
+    out = np.zeros(output_len,1)
+    # for labeling the ground truth
     with open('train.txt', 'r') as f:
-        for line in f:
-            words = line.strip().split()
-            for i in range(0, len(line)-2):
-            w_t = word2vec[line[i]]
-            #target = word2vec[line[i+1]]
-            learn_rnn_fn(w_t, target)
+        for i in range(epoch):
+            print 'train epoch ' + str(i) + str('...')
+            for line in f:
+                words = line.strip().split()
+                for i in range(0, len(line)-1):
+                    w_t = word2vec[line[i]]
+                    out[index_word_mapping[word2vec[line[i+1]]]] = 1
+                    learn_rnn_fn(w_t, out)
+                    out[index_word_mapping[word2vec[line[i+1]]]] = 0
 
+    return 0
+if __name__ == '__main__':
+    return(main())
 #    for line in f:
 #        for word in line.split():
 #            if word != '<s>' and word != '</s>':
