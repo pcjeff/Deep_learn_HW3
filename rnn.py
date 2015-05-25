@@ -15,7 +15,7 @@ epoch = 10
 sigma = lambda x: 1/ (1+T.exp(-x))
 rng = np.random.RandomState(1234)
 dtype = theano.config.floatX
-v = T.fvector()
+v = T.matrix(dtype=dtype)
 target = T.matrix(dtype=dtype)
 params = []
 
@@ -45,7 +45,7 @@ def one_rnn_step( x, h_tm, W_xh, W_hy, W_hh, b_y, b_h):
     print 'W_hy: ' + str(W_hy.eval().shape)
     print 'b_y: ' + str(b_y.eval().shape)
     hh = theano.dot(W_xh, x) + theano.dot(W_hh, h_tm) + b_h
-    print 'hh' + str(hh.eval().shape)
+    #print 'hh' + str(hh.eval().shape)
     yy = sigma(theano.dot(W_hy, hh) + b_y)
     return [soft_max(yy), hh]
 
@@ -89,7 +89,7 @@ def main():
     # mapping of words and index EX: 1 for 'the', 2 for 'is'
     [y_vals, h_vals], _ = theano.scan(fn = one_rnn_step,
         truncate_gradient = 4,
-        sequences = dict(input=v, taps=[0]),
+        sequences = dict(input=v),
         outputs_info = [h0, None], #no output layer 
         non_sequences = params)
     cost = -T.mean(target * T.log(y_vals) + (1. - target) * T.log(1. - y_vals))
@@ -103,8 +103,7 @@ def main():
             for line in f:
                 words = line.strip().split()
                 for i in range(0, len(line)-1):
-                    w_t = word2vec[words[i]]
-                    print words[i+1]
+                    w_t = word2vec[words[i]].reshape(word_vec_len, 1)
                     out[index_word_mapping[words[i+1]]] = 1
                     learn_rnn_fn(w_t, out)
                     out[index_word_mapping[words[i+1]]] = 0
