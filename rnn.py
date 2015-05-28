@@ -44,7 +44,7 @@ def one_rnn_step( x, h_tm, W_xh, W_hy, W_hh, b_y, b_h):
     print 'b_h: ' + str(b_h.eval().shape)
     print 'W_hy: ' + str(W_hy.eval().shape)
     print 'b_y: ' + str(b_y.eval().shape)
-    hh = theano.dot(W_xh, x) + theano.dot(W_hh, h_tm) + b_h
+    hh =  b_h
     #print 'hh' + str(hh.eval().shape)
     yy = sigma(theano.dot(W_hy, hh) + b_y)
     return [soft_max(yy), hh]
