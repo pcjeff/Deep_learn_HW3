@@ -71,12 +71,16 @@ def get_train_func(cost, v, target):
             )
     return learn_rnn_fn
 
-#def predict(line): # the function for jacky82226
+def predict(line): # the function for jacky82226
     #return the probability of the sentence
     #(multiply all the prob of the words in the sentence)
     #param:
     #       type: list
     #       line: list of the words of the sentence  
+    prob=1
+    for i in range(line): 
+        prob=prob*line[i]
+    return prob
 def main():
     
     [W_xh, W_hy, W_hh, b_y, b_h] = get_param(word_vec_len, hidden_len, output_len)
@@ -102,11 +106,12 @@ def main():
             print 'train epoch ' + str(i) + str('...')
             for line in f:
                 words = line.strip().split()
-                for i in range(0, len(line)-1):
-                    w_t = word2vec[words[i]].reshape(word_vec_len, 1)
-                    out[index_word_mapping[words[i+1]]] = 1
-                    learn_rnn_fn(w_t, out)
-                    out[index_word_mapping[words[i+1]]] = 0
+                for i in range(0, len(words)-1):
+                    if words[i+1] in word2vec and words[i] in word2vec:
+                        w_t = word2vec[words[i]].reshape(word_vec_len, 1)
+                        out[index_word_mapping[words[i+1]]] = 1
+                        learn_rnn_fn(w_t, out)
+                        out[index_word_mapping[words[i+1]]] = 0
 
     return 0
 if __name__ == '__main__':
